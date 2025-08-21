@@ -1,6 +1,5 @@
-﻿--Ice Simulator v1.24a
---TESTING adding support for XP12
---TESTING adding reset logic for stopover
+﻿--Ice Simulator v1.21
+--adding reset logic for stopover
 --DONE new athmosphere model
 --DONE bug found concorde inlet - annoying repeating sound enginesarecommingon and second fail when heaters are off - completely mad, huh?
 --DONE track why inlet0 on concorde eng0fail does not fail, only when inlet is on later
@@ -74,64 +73,6 @@
 	  -- DONE add DC3 surface_boot_on as wind_deice for old planes
 	  -- RESOLVED reported pausing the sim keeps growing - made pause sim hold calculations
 	  -- DONE test the Concorde below 20K low speed
-local ffi = require("ffi")
-local XPLM = nil
-local XPLMlib = "XPLM"
-if SYSTEM_ARCHITECTURE == 64 then
-	if SYSTEM == "IBM" then
-		XPLMlib = "XPLM_64"
-	elseif SYSTEM == "LIN" then
-		XPLMlib = "Resources/plugins/XPLM_64.so"
-	else
-		XPLMlib = "Resources/plugins/XPLM.framework/XPLM"
-	end
-else
-	if SYSTEM == "IBM" then
-		XPLMlib = "XPLM"
-	elseif SYSTEM == "LIN" then
-		XPLMlib = "Resources/plugins/XPLM.so"
-	else
-		XPLMlib = "Resources/plugins/XPLM.framework/XPLM"
-	end
-end
-XPLM = ffi.load(XPLMlib)
-ffi.cdef( "typedef void * XPLMDataRef;")
-ffi.cdef( "XPLMDataRef XPLMFindDataRef(const char *inDataRefName);" )
-ffi.cdef( "int XPLMGetDatai(XPLMDataRef inDataRef);" )
-ffi.cdef( "void XPLMSetDatai(XPLMDataRef inDataRef, int inValue);" )
-ffi.cdef( "float XPLMGetDataf(XPLMDataRef inDataRef);" )
-ffi.cdef( "void XPLMSetDataf(XPLMDataRef inDataRef, float inValue);" )
---added by me
---ffi.cdef( "int XPLMGetDatavi(XPLMDataRef inDataRef, int *outValues, int inOffset, int inMax);" )
---ffi.cdef( "void XPLMSetDatavi(XPLMDataRef inDataRef, int *inValues, int inOffset, int inCount);" )
---ffi.cdef( "int XPLMGetDatab(XPLMDataRef inDataRef, void *outValue, int inOffset, int inMaxBytes);" )
---ffi.cdef( "void XPLMSetDatab(XPLMDataRef inDataRef, void *inValue, int inOffset, int inLenght);" )
---
-ffi.cdef( "void XPLMReloadScenery(void)" )
-function findDataref(drName)
-    return XPLM.XPLMFindDataRef(drName)
-end
-function setDatai(handle, value)
-    XPLM.XPLMSetDatai(handle, value)
-end
-function getDatai(handle)
-    return XPLM.XPLMGetDatai(handle)
-end
-function setDataf(handle, value)
-    XPLM.XPLMSetDataf(handle, value)
-end
-function getDataf(handle)
-    return XPLM.XPLMGetDataf(handle)
-end
-
-function read_the_datarefs() --read datarefs
-ice_on_pitot1=getDataf(findDataref("sim/flightmodel/failures/pitot_ice")) 
-ice_on_wing1=getDataf(findDataref("sim/flightmodel/failures/frm_ice")) 
-ice_on_wing2=getDataf(findDataref("sim/flightmodel/failures/frm_ice2"))
-ice_on_window=getDataf(findDataref("sim/flightmodel/failures/window_ice"))
-Static1_ON=getDatai(findDataref("sim/cockpit2/ice/ice_static_heat_on_pilot"))
-Static2_ON=getDatai(findDataref("sim/cockpit2/ice/ice_static_heat_on_copilot"))
-end
 --datarefs definitions
 --alternative random generator oscilating from 0 to 1, staying below 0.01 most of the time
 dataref("RANGEN", "sim/cockpit/radios/transponder_brightness", "readonly") 
@@ -163,69 +104,62 @@ dataref("MAXW", "sim/aircraft/weight/acf_m_max", "readonly")
 --OAT:
 dataref("OAT", "sim/cockpit2/temperature/outside_air_temp_degc", "readonly")
 --Aircraft surface temperature
---dataref("TAT", "sim/weather/temperature_le_c", "readonly")
-dataref("TAT_new", "sim/cockpit2/temperature/outside_air_LE_temp_deg", "readonly")
+dataref("TAT", "sim/weather/temperature_le_c", "readonly")
 --Visibility (low has freezing fog)
---dataref("FOG", "sim/weather/visibility_reported_m", "readonly")
-dataref("FOG", "sim/graphics/view/visibility_effective_m", "readonly")
+dataref("FOG", "sim/weather/visibility_reported_m", "readonly")
 --Air density
 dataref("AIRDENS", "sim/weather/rho", "readonly")
 dataref("ATMODENS", "sim/weather/sigma", "readonly")
 --Humidity
---dataref("HUMID", "sim/weather/relative_humidity_sealevel_percent", "readonly")
-dataref("HUMID", "sim/weather/aircraft/relative_humidity_sealevel_percent", "readonly")
+dataref("HUMID", "sim/weather/relative_humidity_sealevel_percent", "readonly")
 --pressure
 dataref("CPRESSURE", "sim/weather/barometer_current_inhg", "readonly")
 --Antiice switch for check
 dataref("AOA_ON", "sim/cockpit2/ice/ice_AOA_heat_on", "readonly")
-dataref("AOA_ON_old", "sim/cockpit/switches/anti_ice_AOA_heat", "writable")
+dataref("AOA_ON_old", "sim/cockpit/switches/anti_ice_AOA_heat", "readonly")
 dataref("AOA2_ON", "sim/cockpit2/ice/ice_AOA_heat_on_copilot", "readonly")
-dataref("AOA2_ON_old", "sim/cockpit/switches/anti_ice_AOA_heat2", "writable")
-dataref("Pitot1_ON_old", "sim/cockpit/switches/pitot_heat_on", "writable")--older datarefs
---dataref("Pitot2_ON_old", "sim/cockpit/switches/pitot_heat_on2", "writable")
+dataref("AOA2_ON_old", "sim/cockpit/switches/anti_ice_AOA_heat2", "readonly")
+dataref("Pitot1_ON_old", "sim/cockpit/switches/pitot_heat_on", "readonly")--older datarefs
+dataref("Pitot2_ON_old", "sim/cockpit/switches/pitot_heat_on2", "readonly")
 dataref("Pitot1_ON", "sim/cockpit2/ice/ice_pitot_heat_on_pilot", "readonly")
 dataref("Pitot2_ON", "sim/cockpit2/ice/ice_pitot_heat_on_copilot", "readonly")
---dataref("Static1_ON", "sim/cockpit2/ice/ice_static_heat_on_pilot", "readonly") --here static is not present on planes so used as pitot
---dataref("Static1_ON_old", "sim/cockpit/switches/static_heat_on2", "writable") 
---dataref("Static2_ON", "sim/cockpit2/ice/ice_static_heat_on_copilot", "readonly") --here static is not present on planes so used as pitot
---dataref("Static2_ON_old", "sim/cockpit/switches/static_heat_on2", "writable") --here static is not present on planes so used as pitot
+dataref("Static1_ON", "sim/cockpit2/ice/ice_static_heat_on_pilot", "readonly") --here static is not present on planes so used as pitot
+dataref("Static1_ON_old", "sim/cockpit/switches/pitot_heat_on", "readonly") 
+dataref("Static2_ON", "sim/cockpit2/ice/ice_static_heat_on_copilot", "readonly") --here static is not present on planes so used as pitot
+dataref("Static2_ON_old", "sim/cockpit/switches/pitot_heat_on2", "readonly") --here static is not present on planes so used as pitot
 dataref("Window_ON", "sim/cockpit2/ice/ice_window_heat_on", "readonly")
---dataref("Window1_ON", "sim/cockpit2/ice/ice_window_heat_on_window", "readonly", 0)
---dataref("Window2_ON", "sim/cockpit2/ice/ice_window_heat_on_window", "readonly", 1)
---dataref("Window3_ON", "sim/cockpit2/ice/ice_window_heat_on_window", "readonly", 2)
---dataref("Window4_ON", "sim/cockpit2/ice/ice_window_heat_on_window", "readonly", 3)
-dataref("Window_ON_old", "sim/cockpit/switches/anti_ice_window_heat", "writable")
+dataref("Window_ON_old", "sim/cockpit/switches/anti_ice_window_heat", "readonly")
 --dataref("Inlet_ON", "sim/cockpit/switches/anti_ice_inlet_heat", "readonly") --not used
 dataref("Inlet0_ON", "sim/cockpit2/ice/ice_inlet_heat_on_per_engine", "readonly", 0)
 dataref("Inlet0_ON_cowl", "sim/cockpit2/ice/cowling_thermal_anti_ice_per_engine", "readonly", 0)
-dataref("Inlet0_ON_old", "sim/cockpit/switches/anti_ice_inlet_heat_per_engine", "writable", 0)
+dataref("Inlet0_ON_old", "sim/cockpit/switches/anti_ice_inlet_heat_per_engine", "readonly", 0)
 dataref("Inlet1_ON", "sim/cockpit2/ice/ice_inlet_heat_on_per_engine", "readonly", 1)
 dataref("Inlet1_ON_cowl", "sim/cockpit2/ice/cowling_thermal_anti_ice_per_engine", "readonly", 1)
-dataref("Inlet1_ON_old", "sim/cockpit/switches/anti_ice_inlet_heat_per_engine", "writable", 1)
+dataref("Inlet1_ON_old", "sim/cockpit/switches/anti_ice_inlet_heat_per_engine", "readonly", 1)
 dataref("Prop0_ON", "sim/cockpit2/ice/ice_prop_heat_on_per_engine", "readonly", 0)
-dataref("Prop0_ON_old", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "writable", 0)
+dataref("Prop0_ON_old", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "readonly", 0)
 dataref("Prop1_ON", "sim/cockpit2/ice/ice_prop_heat_on_per_engine", "readonly", 1)
-dataref("Prop1_ON_old", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "writable", 1)
+dataref("Prop1_ON_old", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "readonly", 1)
 dataref("Prop2_ON", "sim/cockpit2/ice/ice_prop_heat_on_per_engine", "readonly", 2)
-dataref("Prop2_ON_old", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "writable", 2)
+dataref("Prop2_ON_old", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "readonly", 2)
 dataref("Prop3_ON", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "readonly", 3)
-dataref("Prop3_ON_old", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "writable", 3)
+dataref("Prop3_ON_old", "sim/cockpit/switches/anti_ice_prop_heat_per_engine", "readonly", 3)
 --dataref("Surface_ON", "sim/cockpit/switches/anti_ice_surf_heat", "readonly") -- not used
-dataref("Surface_boot_ON_old", "sim/cockpit/switches/anti_ice_surf_boot", "writable")
+dataref("Surface_boot_ON_old", "sim/cockpit/switches/anti_ice_surf_boot", "readonly")
 --dataref("Antiice_boot_ON", "sim/cockpit2/ice/ice_surface_boot_on", "readonly") --added for DC3
 dataref("Surface_boot_ON", "sim/cockpit2/ice/ice_surface_boot_on", "readonly") 
 dataref("Surface_hot_bleed_ON", "sim/cockpit2/ice/ice_surface_hot_bleed_air_on", "writable")
-dataref("Surface_TSK_ON", "sim/cockpit2/ice/ice_surface_tks_on", "writable")
-dataref("Left_ON", "sim/cockpit2/ice/ice_surfce_heat_left_on", "readonly") -- typo error ok
-dataref("Left_ON_boot", "sim/cockpit2/ice/ice_surface_boot_left_on", "writable")
-dataref("Left_ON_bleed", "sim/cockpit2/ice/ice_surface_hot_bleed_air_left_on", "writable")
-dataref("Left_ON_old", "sim/cockpit/switches/anti_ice_surf_heat_left", "writable")
+dataref("Surface_TSK_ON", "sim/cockpit2/ice/ice_surface_tks_on", "readonly")
+dataref("Left_ON", "sim/cockpit2/ice/ice_surfce_heat_left_on", "readonly")
+dataref("Left_ON_boot", "sim/cockpit2/ice/ice_surface_boot_left_on", "readonly")
+dataref("Left_ON_bleed", "sim/cockpit2/ice/ice_surface_hot_bleed_air_left_on", "readonly")
+dataref("Left_ON_old", "sim/cockpit/switches/anti_ice_surf_heat_left", "readonly")
 dataref("Right_ON", "sim/cockpit2/ice/ice_surfce_heat_right_on", "readonly")
-dataref("Right_ON_boot", "sim/cockpit2/ice/ice_surface_boot_right_on", "writable")
-dataref("Right_ON_bleed", "sim/cockpit2/ice/ice_surface_hot_bleed_air_right_on", "writable")
-dataref("Right_ON_old", "sim/cockpit/switches/anti_ice_surf_heat_right", "writable")
+dataref("Right_ON_boot", "sim/cockpit2/ice/ice_surface_boot_right_on", "readonly")
+dataref("Right_ON_bleed", "sim/cockpit2/ice/ice_surface_hot_bleed_air_right_on", "readonly")
+dataref("Right_ON_old", "sim/cockpit/switches/anti_ice_surf_heat_right", "readonly")
 --Vertical speed:
-dataref("Vertical", "sim/cockpit2/gauges/indicators/vvi_fpm_pilot", "readonly")
+dataref("Vertical", "sim/flightmodel/position/vh_ind_fpm", "readonly")
 --Heading:
 dataref("Course", "sim/flightmodel/position/psi", "readonly")
 --SPEED:
@@ -241,47 +175,33 @@ dataref("Height", "sim/flightmodel/position/y_agl", "readonly")
 dataref("Wind_dir", "sim/weather/wind_direction_degt", "readonly")
 dataref("Wind_force", "sim/weather/wind_speed_kt", "readonly")
 --RAIN:
---dataref("Rain_possible", "sim/weather/rain_percent", "readonly")
-dataref("Rain_possible", "sim/weather/view/rain_ratio", "readonly")
---dataref("Rain_on_acf", "sim/weather/precipitation_on_aircraft_ratio", "readonly")
-dataref("Rain_on_acf", "sim/weather/aircraft/precipitation_on_aircraft_ratio", "readonly")
---dataref("Thunderstorm", "sim/weather/thunderstorm_percent", "readonly")
+dataref("Rain_possible", "sim/weather/rain_percent", "readonly")
+dataref("Rain_on_acf", "sim/weather/precipitation_on_aircraft_ratio", "readonly")
+dataref("Thunderstorm", "sim/weather/thunderstorm_percent", "readonly")
 --CLOUDS meters:
 dataref("Cloud_base0", "sim/weather/cloud_base_msl_m[0]", "readonly")
 dataref("Cloud_base1", "sim/weather/cloud_base_msl_m[1]", "readonly")
 dataref("Cloud_base2", "sim/weather/cloud_base_msl_m[2]", "readonly")
---dataref("Cloud_base0", "sim/weather/aircraft/cloud_base_msl_m", "readonly", 0)
---dataref("Cloud_base1", "sim/weather/aircraft/cloud_base_msl_m", "readonly", 1)
---dataref("Cloud_base2", "sim/weather/aircraft/cloud_base_msl_m", "readonly", 2)
 
 dataref("Cloud_top0", "sim/weather/cloud_tops_msl_m[0]", "readonly")
 dataref("Cloud_top1", "sim/weather/cloud_tops_msl_m[1]", "readonly")
 dataref("Cloud_top2", "sim/weather/cloud_tops_msl_m[2]", "readonly")
---dataref("Cloud_top0", "sim/weather/aircraft/cloud_tops_msl_m", "readonly", 0)
---dataref("Cloud_top1", "sim/weather/aircraft/cloud_tops_msl_m", "readonly", 1)
---dataref("Cloud_top2", "sim/weather/aircraft/cloud_tops_msl_m", "readonly", 2)
 
 dataref("Cloud_coverage0", "sim/weather/cloud_coverage[0]", "readonly")
 dataref("Cloud_coverage1", "sim/weather/cloud_coverage[1]", "readonly")
 dataref("Cloud_coverage2", "sim/weather/cloud_coverage[2]", "readonly")
---dataref("Cloud_coverage0", "sim/weather/aircraft/cloud_coverage_percent", "readonly", 0)
---dataref("Cloud_coverage1", "sim/weather/aircraft/cloud_coverage_percent", "readonly", 1)
---dataref("Cloud_coverage2", "sim/weather/aircraft/cloud_coverage_percent", "readonly", 2)
 
 dataref("Cloud_type0", "sim/weather/cloud_type[0]", "readonly")
 dataref("Cloud_type1", "sim/weather/cloud_type[1]", "readonly")
 dataref("Cloud_type2", "sim/weather/cloud_type[2]", "readonly")
---dataref("Cloud_type0", "sim/weather/aircraft/cloud_type", "readonly", 0)
---dataref("Cloud_type1", "sim/weather/aircraft/cloud_type", "readonly", 1)
---dataref("Cloud_type2", "sim/weather/aircraft/cloud_type", "readonly", 2)
 
 --Ground DE-ICE call
-dataref("Ground_deice_call", "sim/cockpit2/radios/actuators/com2_frequency_hz_833", "readonly") --call 12210 for deicer
+dataref("Ground_deice_call", "sim/cockpit2/radios/actuators/com2_frequency_hz_833", "writable") --call 12210 for deicer
 --Forming ice
 dataref("ice_on_aoa", "sim/flightmodel/failures/aoa_ice", "writable")
 dataref("ice_on_aoa2", "sim/flightmodel/failures/aoa_ice2", "writable")
---dataref("ice_on_wing1", "sim/flightmodel/failures/frm_ice", "writable") -- FFI handles
---dataref("ice_on_wing2", "sim/flightmodel/failures/frm_ice2", "writable") -- FFI handles
+dataref("ice_on_wing1", "sim/flightmodel/failures/frm_ice", "writable")
+dataref("ice_on_wing2", "sim/flightmodel/failures/frm_ice2", "writable")
 --dataref("ice_on_inlet", "sim/flightmodel/failures/inlet_ice", "writable")--not used since v1
 dataref("ice_on_inlet0", "sim/flightmodel/failures/inlet_ice_per_engine", "writable", 0)
 dataref("ice_on_inlet1", "sim/flightmodel/failures/inlet_ice_per_engine", "writable", 1)
@@ -289,14 +209,11 @@ dataref("ice_on_prop0", "sim/flightmodel/failures/prop_ice_per_engine", "writabl
 dataref("ice_on_prop1", "sim/flightmodel/failures/prop_ice_per_engine", "writable", 1)
 dataref("ice_on_prop2", "sim/flightmodel/failures/prop_ice_per_engine", "writable", 2)
 dataref("ice_on_prop3", "sim/flightmodel/failures/prop_ice_per_engine", "writable", 3)
---dataref("ice_on_pitot1", "sim/flightmodel/failures/pitot_ice", "writable")-- FFI handles
+dataref("ice_on_pitot1", "sim/flightmodel/failures/pitot_ice", "writable")
 dataref("ice_on_pitot2", "sim/flightmodel/failures/pitot_ice2", "writable")
 dataref("ice_on_static1", "sim/flightmodel/failures/stat_ice", "writable")
 dataref("ice_on_static2", "sim/flightmodel/failures/stat_ice2", "writable")
-dataref("ice_on_window1", "sim/flightmodel/failures/window_ice_per_window", "writable", 0) -- for Zibo 4.0
-dataref("ice_on_window2", "sim/flightmodel/failures/window_ice_per_window", "writable", 1) -- for Zibo 4.0
-dataref("ice_on_window3", "sim/flightmodel/failures/window_ice_per_window", "writable", 2) -- for Zibo 4.0
-dataref("ice_on_window4", "sim/flightmodel/failures/window_ice_per_window", "writable", 3) -- for Zibo 4.0
+dataref("ice_on_window", "sim/flightmodel/failures/window_ice", "writable")
 --FAILURES:
 dataref("fail_on_AOA", "sim/operation/failures/rel_AOA", "writable")
 --engine flameout --does not work on all -- temporary disabled
@@ -483,106 +400,95 @@ local inlet1_h = 1 --moisture present
 local inlet1_i = 1 --coverage involved
 local inlet_ratio_right = 1
 local step_wing1 = 0
-wing1_a = 1
-wing1_b = 1
-wing1_c = 1
-wing1_d = 1
-wing1_e = 1
-wing1_f = 1
-wing1_g = 1
-wing1_h = 1 --moisture present
-wing1_i = 1 --coverage involved
+local wing1_a = 1
+local wing1_b = 1
+local wing1_c = 1
+local wing1_d = 1
+local wing1_e = 1
+local wing1_f = 1
+local wing1_g = 1
+local wing1_h = 1 --moisture present
+local wing1_i = 1 --coverage involved
 local step_wing2 = 0
-wing2_a = 1
-wing2_b = 1
-wing2_c = 1
-wing2_d = 1
-wing2_e = 1
-wing2_f = 1
-wing2_g = 1
-wing2_h = 1 --moisture present
-wing2_i = 1 --coverage involved
+local wing2_a = 1
+local wing2_b = 1
+local wing2_c = 1
+local wing2_d = 1
+local wing2_e = 1
+local wing2_f = 1
+local wing2_g = 1
+local wing2_h = 1 --moisture present
+local wing2_i = 1 --coverage involved
 local engine0_has_failed = 0
 local engine1_has_failed = 0
 local delay_eng0 = 1
 local delay_eng1 = 1
 local delay_coef0 = 1
 local delay_coef1 = 1
-doom0 = 0
-doom1 = 0
-doom0_a = 0
-doom0_b = 0
-doom0_c = 0
-doom0_d = 0
-doom0_e = 0
-doom0_f = 0
-doom1_a = 0
-doom1_b = 0
-doom1_c = 0
-doom1_d = 0
-doom1_e = 0
-doom1_f = 0
-doom_g0 = 0
-doom_g1 = 0
-ice_on_pitot1 = 0
-ice_on_wing1 = 0
-ice_on_wing2 = 0
-ice_on_window = 0
-played_lowernose = false
-played_ohmygod = false
-played_lookingoodtwice = false
-played_icingcondition = false
-played_goddamnit = false
-played_wearegoodnow = false
-played_wehavejustlostengineone = false
-played_engine2isdown = false
-played_enginesarecommingon = false 
-played_whatishappening = false
-played_bothenginesemergency = false
-played_diving = false
-played_maydaymayday = false
-played_fireupthespoolers = false 
-played_receivedcoockies = false 
-played_lookingforya = false 
-freq_terminated = false
+local doom0 = 0
+local doom1 = 0
+local doom0_a = 0
+local doom0_b = 0
+local doom0_c = 0
+local doom0_d = 0
+local doom0_e = 0
+local doom0_f = 0
+local doom1_a = 0
+local doom1_b = 0
+local doom1_c = 0
+local doom1_d = 0
+local doom1_e = 0
+local doom1_f = 0
+local doom_g0 = 0
+local doom_g1 = 0
+local played_lowernose = false
+local played_ohmygod = false
+local played_lookingoodtwice = false
+local played_icingcondition = false
+local played_goddamnit = false
+local played_wearegoodnow = false
+local played_wehavejustlostengineone = false
+local played_engine2isdown = false
+local played_enginesarecommingon = false 
+local played_whatishappening = false
+local played_bothenginesemergency = false
+local played_diving = false
+local played_maydaymayday = false
+local played_fireupthespoolers = false 
+local played_receivedcoockies = false 
+local played_lookingforya = false 
+local freq_terminated = false
 local ACF = 1
 local ACFTYPE = 0 -- 0 - jet, 1 - turboprop, 2 - piston, 4 - four engine piston, 767 - B767, 748 - 747-800
 local in_clouds = 0
 local ground_deice = 0
 local count = 0
 local counted = 0 
-icelbs = 0 -- weight of ice
+local icelbs = 0 -- weight of ice
 local wingarea = 16 -- 16m2 as default for smallest ACF
 local PAYLOAD = PAYLD*2.2 -- in lbs
 local FOBLBS = FOB*2.2 -- in lbs
 local ZFWLBS = ZFW*2.2 -- in lbs
-superhardfail = false -- cannot recover
-hardfail = false -- can recover
-medfail = false  -- recovery possible after crew action
-softfail = false -- recovery after some time
+local superhardfail = false -- cannot recover
+local hardfail = false -- can recover
+local medfail = false  -- recovery possible after crew action
+local softfail = false -- recovery after some time
 local randomsaved_value = 0
 local randomsaved = false
 local enginesidle = false
-superhardfail1 = false -- cannot recover
-hardfail1 = false -- can recover
-medfail1 = false  -- recovery possible after crew action
-softfail1 = false -- recovery after some time
+local superhardfail1 = false -- cannot recover
+local hardfail1 = false -- can recover
+local medfail1 = false  -- recovery possible after crew action
+local softfail1 = false -- recovery after some time
 local randomsaved_value1 = 0
 local randomsaved1 = false
 local enginesidle1 = false
-inbadweather = false
+local inbadweather = false
 local altitude_temp = Altitude
 --koef_j = 25 --unused
 dxib_mul = 0.00015 --Default X-Plane Icing bypass multiplier global speed value
-clearsky_general = 1 --clearskycoef
---local image_icing_loaded = 0
-image_id_noicing = float_wnd_load_image(SCRIPT_DIRECTORY .. "/noicing.jpg")
-image_id_heavyicing = float_wnd_load_image(SCRIPT_DIRECTORY .. "/heavyicing.jpg")
-image_id_deicercomming = float_wnd_load_image(SCRIPT_DIRECTORY .. "/deicercomming.jpg")
-image_id_deicing = float_wnd_load_image(SCRIPT_DIRECTORY .. "/deicing.jpg")
-image_id_aftericing = float_wnd_load_image(SCRIPT_DIRECTORY .. "/aftericing.jpg")
-image_id_icingisback = float_wnd_load_image(SCRIPT_DIRECTORY .. "/icingisback.jpg")
---image_id = float_wnd_load_image(SCRIPT_DIRECTORY .. "/noicing.jpg")
+local clearsky_general = 1 --clearskycoef
+
 -- define aircraft category
 -- 1 kg of ice = 2.2 lbs of ice
 if ZFWLBS > 0 and ZFWLBS < 4500 and ENGTYPE < 2 then -- type is piston light aircraft
@@ -772,20 +678,16 @@ function waitforsim()
 	ice_on_aoa = 0
 	ice_on_aoa2 = 0
 	ice_on_pitot1 = 0
-	setDataf(findDataref("sim/flightmodel/failures/pitot_ice"),ice_on_pitot1) 
 	ice_on_pitot2 = 0
 	ice_on_static1 = 0
 	ice_on_static2 = 0
 	ice_on_window = 0
-	setDataf(findDataref("sim/flightmodel/failures/window_ice"),ice_on_window)
 	ice_on_prop0 = 0
 	ice_on_prop1 = 0
 	ice_on_inlet0 = 0
 	ice_on_inlet1 = 0
 	ice_on_wing1 = 0
-	setDataf(findDataref("sim/flightmodel/failures/frm_ice"),ice_on_wing1)
 	ice_on_wing2 = 0
-	setDataf(findDataref("sim/flightmodel/failures/frm_ice2"),ice_on_wing2)
 	fail_on_AOA = 0
 	CHUMIDITY = HUMID
 	--inbadweather = 0
@@ -805,12 +707,12 @@ end
 --old datarefs bugfixer
 function old_datarefs()
 Pitot1_ON_old = Pitot1_ON
---Pitot2_ON_old = Pitot2_ON
+Pitot2_ON_old = Pitot2_ON
 AOA_ON_old = AOA_ON
 AOA2_ON_old = AOA2_ON
---Static1_ON_old = Static1_ON
---Static2_ON_old = Static2_ON
---Window_ON_old = Window_ON
+Static1_ON_old = Static1_ON
+Static2_ON_old = Static2_ON
+Window_ON_old = Window_ON
 Inlet0_ON_old = Inlet0_ON
 Inlet1_ON_old = Inlet1_ON
 Prop0_ON_old = Prop0_ON
@@ -869,7 +771,6 @@ function Ground()
 		 if ice_on_aoa2 < 0.01 then ice_on_aoa2 = 0 end
 	     ice_on_pitot1 = ice_on_pitot1 - 0.01 
 		 if ice_on_pitot1 < 0.01 then ice_on_pitot1 = 0 end
-		 setDataf(findDataref("sim/flightmodel/failures/pitot_ice"),ice_on_pitot1) 
 		 ice_on_pitot2 = ice_on_pitot2 - 0.01
 		 if ice_on_pitot2 < 0.01 then ice_on_pitot2 = 0 end
 		 ice_on_static1 = ice_on_static1 - 0.01 
@@ -877,18 +778,7 @@ function Ground()
 		 ice_on_static2 = ice_on_static2 - 0.01
 		 if ice_on_static2 < 0.01 then ice_on_static2 = 0 end
 		 ice_on_window = ice_on_window - 0.01
-		 ice_on_window1 = ice_on_window1 - 0.01
-		 ice_on_window2 = ice_on_window2 - 0.01
-		 ice_on_window3 = ice_on_window3 - 0.01
-		 ice_on_window4 = ice_on_window4 - 0.01
-		 if ice_on_window < 0.01 then 
-		  ice_on_window = 0 
-		  ice_on_window1 = 0
-		  ice_on_window2 = 0
-		  ice_on_window3 = 0
-		  ice_on_window4 = 0
-		 end
-		 setDataf(findDataref("sim/flightmodel/failures/window_ice"),ice_on_window)
+		 if ice_on_window < 0.01 then ice_on_window = 0 end
 		 ice_on_prop0 = ice_on_prop0 - 0.01
 		 if ice_on_prop0 < 0.01 then ice_on_prop0 = 0 end
 		 ice_on_prop1 = ice_on_prop1 - 0.01
@@ -899,10 +789,8 @@ function Ground()
 		 if ice_on_inlet1< 0.01 then ice_on_inlet1 = 0 end
 	     ice_on_wing1 = ice_on_wing1 - 0.01
 		 if ice_on_wing1 < 0.01 then ice_on_wing1 = 0 end
-		 setDataf(findDataref("sim/flightmodel/failures/frm_ice"),ice_on_wing1)
 	     ice_on_wing2 = ice_on_wing2 - 0.01
 		 if ice_on_wing2 < 0.01 then ice_on_wing2 = 0 end
-		 setDataf(findDataref("sim/flightmodel/failures/frm_ice2"),ice_on_wing2)
 	     fail_on_AOA = 0
 	 end --end of deice procedure
 	 if count > 1560 then
@@ -1400,7 +1288,7 @@ if ACFTYPE == 767 then ice_on_aoa2 = 0 end
 function Pitot1() -- check conditions for Pitot icing
 --Pitots fail section
 --TAT is below zero
- if TAT_new < 0 and Pitot1_ON == 1 then -- Pitot1 heat is on and cold outside - no change
+ if TAT < 0 and Pitot1_ON == 1 then -- Pitot1 heat is on and cold outside - no change
    --step_pitot1 = 0 
    step_pitot1 = 0.01
    --if paused_sim == 1 then step_pitot1 = 0 end --paused sim bug resolver
@@ -1410,13 +1298,12 @@ function Pitot1() -- check conditions for Pitot icing
    ice_on_pitot1 = ice_on_pitot1-step_pitot1
    if ice_on_pitot1 > 0.99995 then ice_on_pitot1 = 1 end -- limit value
    if ice_on_pitot1 < 0.000001 then ice_on_pitot1 = 0 end
-   setDataf(findDataref("sim/flightmodel/failures/pitot_ice"),ice_on_pitot1) 
    --play_sound(THREE)
    --RESOLVED BUG here static is growing or lowering by default xplane logic
    --possible cause?
  -- end of override formula
  end
-  if TAT_new > 0 then
+  if TAT > 0 then
    step_pitot1 = dxib_mul -- default coeficient for Pitot1 , small ice (0.001 step = long (enough to increase ); 0.01 fast step) every second
    --step_pitot1 = (AIRDENS/10000)*math.abs(HUMID/100)
    --if paused_sim == 1 then step_pitot1 = 0 end --paused sim bug resolver
@@ -1448,11 +1335,10 @@ function Pitot1() -- check conditions for Pitot icing
    --play_sound(TWO)
    if ice_on_pitot1 > 0.9999 then ice_on_pitot1 = 1 end -- limit value
    if ice_on_pitot1 < 0.000001 then ice_on_pitot1 = 0 end
-   setDataf(findDataref("sim/flightmodel/failures/pitot_ice"),ice_on_pitot1) 
    --if ice_on_aoa < 0.9 then fail_on_AOA = 0 end -- disable failure does not work
 
   end -- end of Pitot1 is hot
-    if TAT_new < 0 and Pitot1_ON ~= 1 and ground_deice == 0 then 
+    if TAT < 0 and Pitot1_ON ~= 1 and ground_deice == 0 then 
      step_pitot1 = dxib_mul
 	 --step_pitot1 = (AIRDENS/10000)*math.abs(HUMID/100)
 	 --if paused_sim == 1 then step_pitot1 = 0 end --paused sim bug resolver
@@ -1547,7 +1433,6 @@ function Pitot1() -- check conditions for Pitot icing
 	--end of new cloud check here
 	if paused_sim == 1 then step_pitot1 = 0 end --paused sim bug resolver
 	 ice_on_pitot1 = ice_on_pitot1+step_pitot1*pitot1_a*pitot1_b*pitot1_c*pitot1_d*pitot1_e*pitot1_f*pitot1_g*pitot1_h*pitot1_i*clearsky_general -- formula for forming ice on Pitot1
-	 setDataf(findDataref("sim/flightmodel/failures/pitot_ice"),ice_on_pitot1) 
 	 --play_sound(ONE)
 	 if ice_on_pitot1 > 0.099 then
  	    if played_icingcondition == false then 
@@ -1557,7 +1442,6 @@ function Pitot1() -- check conditions for Pitot icing
 	 end	 
      if ice_on_pitot1 > 0.99995 then
     	ice_on_pitot1 = 1
-		setDataf(findDataref("sim/flightmodel/failures/pitot_ice"),ice_on_pitot1) 
 		if played_goddamnit == false and played_ohmygod == false then 
 	      play_sound(GODDAMNIT)
 	      played_goddamnit = true --you hear that? dont play it again
@@ -1571,7 +1455,6 @@ function Pitot1() -- check conditions for Pitot icing
 	 -- end
      if ice_on_pitot1 < 0.000001 then
     	ice_on_pitot1 = 0
-		setDataf(findDataref("sim/flightmodel/failures/pitot_ice"),ice_on_pitot1) 
 	    if played_icingcondition == true then
 	     if played_wearegoodnow == false and played_lookingoodtwice == false then -- play it before lookingood
 	      play_sound(WEAREGOODNOW)
@@ -1590,7 +1473,7 @@ function Pitot2() -- check conditions for right Pitot icing
 if ACFTYPE == 748 then ice_on_pitot2 = 0 end
 -- end of 748-i bug resolver
 --TAT is below zero
- if TAT_new < 0 and Pitot2_ON == 1 then -- Pitot2 heat is on and cold outside - no change
+ if TAT < 0 and Pitot2_ON == 1 then -- Pitot2 heat is on and cold outside - no change
    --step_pitot2 = 0 
    step_pitot2 = 0.01 
    --if paused_sim == 1 then step_pitot2 = 0 end --paused sim bug resolver
@@ -1605,7 +1488,7 @@ if ACFTYPE == 748 then ice_on_pitot2 = 0 end
    --possible cause?
  -- end of override formula
  end
-   if TAT_new > 0 then 
+   if TAT > 0 then 
      step_pitot2 = dxib_mul
 	 --step_pitot2 = (AIRDENS/10000)*math.abs(HUMID/100)
 	 --if paused_sim == 1 then step_pitot2 = 0 end --paused sim bug resolver
@@ -1640,7 +1523,7 @@ if ACFTYPE == 748 then ice_on_pitot2 = 0 end
      if ice_on_pitot2 < 0.000001 then ice_on_pitot2 = 0 end -- limit values
    end -- end if its hot
    
-   if TAT_new < 0 and Pitot2_ON ~= 1 and ground_deice == 0 then  -- Pitot2 heat is off and cold outside and deice is not active
+   if TAT < 0 and Pitot2_ON ~= 1 and ground_deice == 0 then  -- Pitot2 heat is off and cold outside and deice is not active
    step_pitot2 = dxib_mul -- default coeficient for Pitot2 , small ice (0.001 step = long (enough to increase ); 0.01 fast step) every second
    --step_pitot2 = (AIRDENS/10000)*math.abs(HUMID/100)
   -- if paused_sim == 1 then step_pitot2 = 0 end --paused sim bug resolver
@@ -1756,7 +1639,7 @@ end -- end of Pitot2 function
 if ACFTYPE == 767 and Window_ON == 1 then ice_on_static1 = 0 end
 --end of 767 bug resolver here
 --TAT is below zero
- if TAT_new < 0 and Static1_ON == 1 then -- Static1 heat is on and cold outside - no change
+ if TAT < 0 and Static1_ON == 1 then -- Static1 heat is on and cold outside - no change
    --step_static1 = 0
    step_static1 = 0.01
    --if paused_sim == 1 then step_static1 = 0 end --paused sim bug resolver
@@ -1770,7 +1653,7 @@ if ACFTYPE == 767 and Window_ON == 1 then ice_on_static1 = 0 end
    --possible cause?
  -- end of override formula
  end
-  if TAT_new > 0 then
+  if TAT > 0 then
    step_static1 = dxib_mul -- default coeficient for Static1 , small ice (0.001 step = long (enough to increase ); 0.01 fast step) every second
    --step_static1 = (AIRDENS/10000)*math.abs(HUMID/100)
    --if paused_sim == 1 then step_static1 = 0 end --paused sim bug resolver
@@ -1805,7 +1688,7 @@ if ACFTYPE == 767 and Window_ON == 1 then ice_on_static1 = 0 end
    --if ice_on_aoa < 0.9 then fail_on_AOA = 0 end -- disable failure does not work
 
   end -- end of Static1 is hot
-    if TAT_new < 0 and Static1_ON ~= 1 and ground_deice == 0 then 
+    if TAT < 0 and Static1_ON ~= 1 and ground_deice == 0 then 
      step_static1 = dxib_mul
 	 --step_static1 = (AIRDENS/10000)*math.abs(HUMID/100)
 	 --if paused_sim == 1 then step_static1 = 0 end --paused sim bug resolver
@@ -1931,7 +1814,7 @@ function Static2() -- check conditions for right Pitot icing
 if ACFTYPE == 767 and Window_ON == 1 then ice_on_static2 = 0 end
 --end of 767 bug resolver here
 --TAT is below zero
- if TAT_new < 0 and Static2_ON == 1 then -- Static2 heat is on and cold outside - no change 
+ if TAT < 0 and Static2_ON == 1 then -- Static2 heat is on and cold outside - no change 
     -- here Static1 works only
 	--step_static2 = 0
    step_static2 = 0.01 
@@ -1946,7 +1829,7 @@ if ACFTYPE == 767 and Window_ON == 1 then ice_on_static2 = 0 end
    --possible cause?
  -- end of override formula
  end
-   if TAT_new > 0 then 
+   if TAT > 0 then 
      step_static2 = dxib_mul
 	 --step_static2 = (AIRDENS/10000)*math.abs(HUMID/100)
 	 --if paused_sim == 1 then step_static2 = 0 end --paused sim bug resolver
@@ -1981,7 +1864,7 @@ if ACFTYPE == 767 and Window_ON == 1 then ice_on_static2 = 0 end
      if ice_on_static2 < 0.000001 then ice_on_static2 = 0 end -- limit values
    end -- end if its hot
    
-   if TAT_new < 0 and Static2_ON ~= 1 and ground_deice == 0 then  -- Static2 heat is off and cold outside and deice is not active
+   if TAT < 0 and Static2_ON ~= 1 and ground_deice == 0 then  -- Static2 heat is off and cold outside and deice is not active
    step_static2 = dxib_mul -- default coeficient for Static2 , small ice (0.001 step = long (enough to increase ); 0.01 fast step) every second
    --step_static2 = (AIRDENS/10000)*math.abs(HUMID/100)
    --if paused_sim == 1 then step_static2 = 0 end --paused sim bug resolver
@@ -2090,13 +1973,7 @@ function Window() -- check conditions for window freezing
 --Window heat fail section
 --OAT is below zero
 --737 bug resolver here
-if ACFTYPE == 738 and Pitot1_ON == 1 then 
- ice_on_window = 0 
- ice_on_window1 = 0
- ice_on_window2 = 0
- ice_on_window3 = 0
- ice_on_window4 = 0
- end
+if ACFTYPE == 738 and Pitot1_ON == 1 then ice_on_window = 0 end
 --end of 737 bug resolver here
 --FF320 bug resolver here
 if ACFTYPE == 320 and Pitot1_ON == 1 then ice_on_window = 0 end --eng2 may still fail
@@ -2109,12 +1986,6 @@ if ACFTYPE == 320 and Pitot1_ON == 1 then ice_on_window = 0 end --eng2 may still
    ice_on_window = ice_on_window-step_window
    if ice_on_window > 0.99995 then ice_on_window = 1 end -- limit value
    if ice_on_window < 0.000001 then ice_on_window = 0 end
-   setDataf(findDataref("sim/flightmodel/failures/window_ice"),ice_on_window)
-   --XP12 more windows
-   ice_on_window1 = ice_on_window
-   ice_on_window2 = ice_on_window
-   ice_on_window3 = ice_on_window
-   ice_on_window4 = ice_on_window
    --play_sound(THREE)
    --RESOLVED BUG here static is growing or lowering by default xplane logic
    --possible cause?
@@ -2131,9 +2002,9 @@ if ACFTYPE == 320 and Pitot1_ON == 1 then ice_on_window = 0 end --eng2 may still
     if Altitude > 6000 and Altitude < 12000 then window_b = 2 end -- adds another speed of forming ice on Window by factor
     if Altitude > 12000 and Altitude < 30000 then window_b = 1 end
     if Altitude > 30000 then window_b = 0.95 end
-    if TAT_new < 0 and TAT_new > -20 then  window_c = 2 end -- adds another speed of forming ice on Window by factor
-    if TAT_new < -20 and TAT_new > -40 then  window_c = 1.5 end
-    if TAT_new < -40 then window_c = 1 end
+    if TAT < 0 and TAT > -20 then  window_c = 2 end -- adds another speed of forming ice on Window by factor
+    if TAT < -20 and TAT > -40 then  window_c = 1.5 end
+    if TAT < -40 then window_c = 1 end
     if FOG > 5000 then window_d = 1 end -- adds another speed of forming ice on Window by factor
 	if FOG > 3000 and FOG <= 5000 then window_d = 1.1 end
 	if FOG > 1000 and FOG <= 3000 then window_d = 1.2 end
@@ -2151,7 +2022,6 @@ if ACFTYPE == 320 and Pitot1_ON == 1 then ice_on_window = 0 end --eng2 may still
     last_stored_ice_on_window = ice_on_window
     if ice_on_window > 0.9991 then ice_on_window = 1 end -- limit values
     if ice_on_window < 0.000001 then ice_on_window = 0 end
-	setDataf(findDataref("sim/flightmodel/failures/window_ice"),ice_on_window)
   end -- heating if its hot
   
   if OAT < 0 and Window_ON ~= 1 and ground_deice == 0 then-- Window heat is off and cold outside and no ground deice present
@@ -2273,7 +2143,6 @@ if ACFTYPE == 320 and Pitot1_ON == 1 then ice_on_window = 0 end --eng2 may still
     --last_stored_ice_on_window = ice_on_window -- not used now
     if ice_on_window > 0.99995 then ice_on_window = 1 end -- limit values
     if ice_on_window < 0.000001 then ice_on_window = 0 end
-	setDataf(findDataref("sim/flightmodel/failures/window_ice"),ice_on_window)
    end -- end of Window is below zero
  
 end -- end of Window function
@@ -2621,7 +2490,7 @@ end -- end of prop1 icing
 --end of Proppeler2
 function reset_trick()
 --reset
- if Ground_deice_call == 136990 then
+ if Ground_deice_call == 137000 then
   played_fireupthespoolers = false
   played_receivedcoockies = false
   played_lookingforya = false
@@ -4323,7 +4192,7 @@ end -- end of Engine Inlet1 icing
   -- step_wing1 = 0
  --end
  --DC3 bugfixer ends
- if TAT_new < 0 and Left_ON == 1 or Surface_boot_ON == 1 then -- Wing heat is on and cold outside - no change
+ if TAT < 0 and Left_ON == 1 or Surface_boot_ON == 1 then -- Wing heat is on and cold outside - no change
    --step_wing1 = 0 
    step_wing1 = 0.01
    if paused_sim == 1 then step_wing1 = 0 end --paused sim bug resolver
@@ -4332,13 +4201,12 @@ end -- end of Engine Inlet1 icing
    ice_on_wing1 = ice_on_wing1-step_wing1
    if ice_on_wing1 > 0.99995 then ice_on_wing1 = 1 end -- limit value
    if ice_on_wing1 < 0.000001 then ice_on_wing1 = 0 end
-   setDataf(findDataref("sim/flightmodel/failures/frm_ice"),ice_on_wing1)
    --play_sound(THREE)
    --RESOLVED BUG here static is growing or lowering by default xplane logic
    --possible cause?
  -- end of override formula
  end
-  if TAT_new > 0 then
+  if TAT > 0 then
    step_wing1 = dxib_mul -- default coeficient for Wing1 , small ice (0.001 step = long (enough to increase ); 0.01 fast step) every second
    --if paused_sim == 1 then step_wing1 = 0 end --paused sim bug resolver
    if speed_true > 10 and speed_true < 100 then wing1_a = 1.5 end -- adds speed of forming ice on Wing1 by factor
@@ -4369,11 +4237,10 @@ end -- end of Engine Inlet1 icing
    --play_sound(TWO)
    if ice_on_wing1 > 0.99995 then ice_on_wing1 = 1 end -- limit value
    if ice_on_wing1 < 0.000001 then ice_on_wing1 = 0 end
-   setDataf(findDataref("sim/flightmodel/failures/frm_ice"),ice_on_wing1)
    --if ice_on_aoa < 0.9 then fail_on_AOA = 0 end -- disable failure does not work
 
   end -- end of Wing1 is hot
-    if TAT_new < 0 and Left_ON ~= 1 or Surface_boot_ON ~= 1 and ground_deice == 0 then 
+    if TAT < 0 and Left_ON ~= 1 or Surface_boot_ON ~= 1 and ground_deice == 0 then 
      step_wing1 = dxib_mul -- we need here slow speed of forming because wing is large
 	 --step_wing1 = (AIRDENS/10000)*math.abs(HUMID/100)*(20/wingarea)
 	 --if paused_sim == 1 then step_wing1 = 0 end --paused sim bug resolver
@@ -4480,7 +4347,6 @@ end -- end of Engine Inlet1 icing
 	 end
      if ice_on_wing1 > 0.99995 then ice_on_wing1 = 1 end
      if ice_on_wing1 < 0.000001 then ice_on_wing1 = 0 end -- limit values
-	 setDataf(findDataref("sim/flightmodel/failures/frm_ice"),ice_on_wing1)
    end -- end if its cold
  end -- end of Wing1
  
@@ -4493,7 +4359,7 @@ end -- end of Engine Inlet1 icing
  --end
  --DC3 bugfixer ends
 --TAT is below zero
- if TAT_new < 0 and Right_ON == 1 or Surface_boot_ON == 1 then -- Wing heat is on and cold outside - no change
+ if TAT < 0 and Right_ON == 1 or Surface_boot_ON == 1 then -- Wing heat is on and cold outside - no change
    --play_sound(ONE) --debug sound
    --step_wing2 = 0 
    step_wing2 = 0.01
@@ -4502,14 +4368,13 @@ end -- end of Engine Inlet1 icing
    ice_on_wing2 = ice_on_wing2-step_wing2
    if ice_on_wing2 > 0.99995 then ice_on_wing2 = 1 end -- limit value
    if ice_on_wing2 < 0.000001 then ice_on_wing2 = 0 end
-   setDataf(findDataref("sim/flightmodel/failures/frm_ice2"),ice_on_wing2)
    --play_sound(THREE)
    --RESOLVED BUG here static is growing or lowering by default xplane logic
    --possible cause?
  -- end of override formula
    --play_sound(ONE)
  end
-  if TAT_new > 0 then
+  if TAT > 0 then
    step_wing2 = dxib_mul -- default coeficient for Wing2 , small ice (0.001 step = long (enough to increase ); 0.01 fast step) every second
    --play_sound(TWO) --debug sound
    --if paused_sim == 1 then step_wing2 = 0 end --paused sim bug resolver
@@ -4541,11 +4406,10 @@ end -- end of Engine Inlet1 icing
    --play_sound(TWO)
    if ice_on_wing2 > 0.9991 then ice_on_wing2 = 1 end -- limit value
    if ice_on_wing2 < 0.000001 then ice_on_wing2 = 0 end
-   setDataf(findDataref("sim/flightmodel/failures/frm_ice2"),ice_on_wing2)
    --if ice_on_aoa < 0.9 then fail_on_AOA = 0 end -- disable failure does not work
 
   end -- end of Wing1 is hot
-    if TAT_new < 0 and Right_ON ~= 1 or Surface_boot_ON ~= 1 and ground_deice == 0 then 
+    if TAT < 0 and Right_ON ~= 1 or Surface_boot_ON ~= 1 and ground_deice == 0 then 
 	--if TAT < 0 and Right_ON ~= 1 and ground_deice == 0 then 
 	 --play_sound(THREE) --debug sound
      step_wing2 = dxib_mul -- we need here slow speed of forming because wing is large
@@ -4646,67 +4510,10 @@ end -- end of Engine Inlet1 icing
 	 --play_sound(THREE)
      if ice_on_wing2 > 0.99995 then ice_on_wing2 = 1 end
      if ice_on_wing2 < 0.000001 then ice_on_wing2 = 0 end -- limit values
-	 setDataf(findDataref("sim/flightmodel/failures/frm_ice2"),ice_on_wing2)
    end -- end if its cold
  end -- end of Wing2
- -- IMGUI Section
- --Main Window
-local function createMainWindows()
-  local MainWindows = float_wnd_create(600,420,1,true)
-  float_wnd_set_title(MainWindows,"Icing Simulator 1.24")
-  float_wnd_set_imgui_builder(MainWindows,"MainWindowBuilders")
-end
-function MainWindowBuilders(wnd,x,y)
- -- display
- imgui.TextUnformatted("Call de-ice on COM2 122.10 MHz ")
- imgui.TextUnformatted("De-ice service status : ")
- if count == 0 and OAT <= 0 then
- imgui.TextUnformatted("                        No service   ")
- image_id = image_id_heavyicing
- end
- if count == 0 and OAT > 0 then
- imgui.TextUnformatted("                        No service needed  ")
- image_id = image_id_noicing
- end
- if count > 0 and count < 360 then
- imgui.TextUnformatted("                        Waiting for de-icer   ")
- image_id = image_id_deicercomming
- end
- if count >= 360 and count < 960 then
- imgui.TextUnformatted("                        Initiated, do not move   ")
- image_id = image_id_deicing
- end
- if count >= 960 and count < 1560 then
- imgui.TextUnformatted("                        Finished  ")
- image_id = image_id_aftericing
- end
- if count >= 1560 then
- imgui.TextUnformatted("                        Fluid has lost effectivity  ")
- image_id = image_id_icingisback 
- end
- --if imgui.Button("Export to X-Plane") then
- --end
- -- Background
- local win_width = imgui.GetWindowWidth()
- --if image_icing_loaded == 0 then 
-  imgui.Image(image_id, win_width, 338 / 600 * win_width)
-  -- Prameters: image id returned by float_wnd_load_image, diplay width, display height
-  image_icing_loaded = 1
- --end
- --
-end
---OpenMainWindow
-function OpenCloseWindows()
-  local WindowVisibles
-	if MainWindows==nil then
-		createMainWindows()
-	else
-		WindowVisibles = float_wnd_get_visible(MainWindows)
-		if not WindowVisibles then
-			createMainWindows()
-		end
-	end
-end
+ 
+
  -- OLD code
 --if OAT < 0 and speed < 10 then -- aircraft in winter taxiing or stopped
  -- step_AOA = 0.01 -- small ice every second
@@ -4732,8 +4539,6 @@ end
 --end
 
 --end
-read_the_datarefs()
-do_every_frame("read_the_datarefs()")
 do_often("old_datarefs()")
 do_often("waitforsim()")
 do_often("reset_trick()")
@@ -4746,7 +4551,6 @@ do_often("Pitot2()")
 do_often("Static1()")
 do_often("Static2()")
 do_often("Window()") 
---do_every_frame("Window()") 
 --do_often("Inlet()")
 do_often("Inlet0()")
 do_often("Inlet1()")
@@ -4756,7 +4560,6 @@ do_often("Wing1()")
 do_often("Wing2()")
 do_often("General_sounds()")
 do_often("Ground()")
-add_macro("Icing Simulator","OpenCloseWindows()")
 --do_often("badweather()")
 --AoA has now no effect in X-plane (not well modeled?) 
 --Pitot fail increase airspeed indicator or freeze airspeed indicator and VSI done by "ice_on_pitot1"
