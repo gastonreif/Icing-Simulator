@@ -2,7 +2,9 @@
 X-Plane enhanced Icing simulation
 
 
-Icing Simulator v1.24 The complete edition for X-Plane 12.00+.
+
+
+Icing Simulator v1.21 The complete edition for X-Plane 11.30+.
 
 
 Background:
@@ -24,8 +26,7 @@ If you forget to heat, switch the systems on when needed, you can hear warning f
 scenarios get problems to fly and loose the control.
 
 Usage:
-copy contents to your x-plane /Resources/plugins/flywithlua/scripts/ except zibofix folder.
-If you want to fly with Zibo B737 then copy content of zibofix to \X-Plane 12\Aircraft\B737-800X\plugins\xlua\scripts
+copy contents to your x-plane /Resources/plugins/flywithlua/scripts/
 Start X-Plane with your favorite plane.
 When you found icing conditions turn according airplane checklist the correct heaters or anti-ice systems.
 If you forget to switch Window heat you can have frost on windshield, switch it on, after several seconds or minutes will disappear.
@@ -69,14 +70,12 @@ scroll down to Icing and Icing status 2 and mark it as visible on screen.
 Ground de-ice usage:
 I have created ground de-ice logic. No 3D model or visual icing/deicing is present. However some authors created it (ZiBo 737, FF 767...)
 Now to use ground de-ice:
-Open x-plane menu plugins -> flywithlua -> flywithlua macros -> icing Simulator to see status.
-Tune on COM2 frequency 122.10 while on ground (and not moving) to call ground de-icer. If your aicraft has de-ice truck, move it in. 
+Tune on COM2 frequency 122.10 while on ground (and not moving) to call ground de-icer. If your aicraft has de-ice truck, move it in.
 There is 5 minutes window for de-icer to become operational. Copilot will announce something when ready. Its fully automatic.
 Icing will disappear within some minutes.
 After another 10 minutes copilot will announce you can start the engines. Icing will be gone now beacuse of the fluid.
 From now on you have cca 10 minutes for roll on and takeoff until ice can build up again and de-ice fluid will lost the effect.
 After takeoff or loosing frequency of 122.10 you will also loose the deice protection from the fluid and you must use anti-ice switches.
-When use stopover, you need to switch to 136.99 and back to 122.10 to reset the function.
 
 
 Features:
@@ -132,26 +131,25 @@ A: Supercooled water which forms in ice is not present below -48°C. Only ice cr
 
 
 Requirements:
-X-Plane 12.00+
+X-Plane 11.30b1+
 FlywithLUA v2.2+
 
 
 Installation:
-Copy all files and folders except zibofix to your x-plane /Resources/plugins/flywithlua/scripts/ folder
-Copy folder ice_fix including ice_fix.lua file inside from zibofix folder to your x-plane /aircraft/B737-800X/plugins/xlua/scripts/ folder
+Copy ice_simulator.lua file to your x-plane /Resources/plugins/flywithlua/scripts/ folder
 Copy soundtrack folder to your x-plane /Resources/plugins/flywithlua/scripts/ folder
 
 Tested aircrafts:
-ZIBO 737-800 4.01  Wings no effect, Inlet no effect, Pitot OK, Static OK, Window OK - use zibofix, AoA - no effect - Visual icing on Windshield
-LR A330-300	   Wings OK, Pitot OK, Window - no effect, AoA - no effect
-FF A320 v1.3.4    Inlet OK, others no effect, that systems have different logic
-FF 767 v1.6.12      Wings OK, Inlet OK, Pitot - no effect, Window OK, Static no effect, AoA - no effect - Visual icing on Windshield
-FF 777 v1.11.4     Wings OK, Inlet OK, Pitot OK(via wing anti-ice), Window - no effect, Static OK, AoA - no effect, it has its own backup protection
+ZIBO 737-800 3.51  Wings no effect, Inlet no effect, Pitot OK, Static OK, Window no effect, AoA - no effect - Visual icing on Windshield
+FF A320 v1.2.5b    Inlet OK, others no effect, that systems have different logic
+FF 767 v1.4.4      Wings OK, Inlet OK, Pitot - no effect, Window OK, Static no effect, AoA - no effect - Visual icing on Windshield
+FF 777 v1.10.06     Wings OK, Inlet OK, Pitot OK(via wing anti-ice), Window - no effect, Static OK, AoA - no effect, it has its own backup protection
+SSG 747-8 v1.9.2   Wings OK, Inlet OK, Pitot - no effect, Window - no effect, Static - no effect, AoA - no effect
 Default Baron      Wings OK, Prop OK, Pitot OK, Window - no effect, AoA - no effect
 Default King Air   Wings OK, Prop OK, Pitot OK, Window - no effect, AoA - no effect
 Default C172       Wings OK but not have anti-ice, Prop OK, Pitot OK, Window - no effect, AoA - no effect -not recommended for cold weather
 VSkylabs DC3 4.06  Wings OK, Prop OK, Pitot OK, Window OK, AoA - no effect - this bird have visual icing on wings
-Colimata Concorde FXP 3.50  Wings OK, Pitot OK, AoA OK, Inlet OK, Static OK, Windows OK
+Colimata Concorde FXP 2.0  Wings OK, Pitot OK, AoA OK, Inlet OK, Static OK, Windows OK
                  (use rotary timer in overhead panel section wing and intake anti-ice, pitot switches on are not enough)
 
 Tested Weather Engines (extreme conditions effects):
@@ -167,7 +165,16 @@ use of planning in Betterpuhback clears the ice
 using xEnviro in fog and clouds does zero effect on aircraft
 light snow has zero effect on aircraft
 
-Version 1.24
-Gaston 2024
+Version 1.21
+Gaston 2022
 support:
 gastonreif@gmail.com
+
+ 
+
+ 
+What's New in Version 1.21
+
+Released February 2022
+
+- failure reset by tunning 137.00 MHz VHF2
